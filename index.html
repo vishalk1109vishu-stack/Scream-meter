@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔥 Scream Meter - Decibel Checker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 15px 10px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .header p { color: #a0a0a0; font-size: 0.85rem; }
+
+        .warning-box {
+            display: none;
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px auto;
+            width: 90%;
+            max-width: 400px;
+            font-size: 0.85rem;
+            color: #ffc107;
+            line-height: 1.5;
+        }
+
+        .warning-box.active { display: block; }
+
+        .main-display {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 10px auto;
+        }
+
+        .gauge-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 180deg,
+                #00d2d3 0deg, #00d2d3 54deg,
+                #54a0ff 54deg, #54a0ff 108deg,
+                #5f27cd 108deg, #5f27cd 162deg,
+                #ff9f43 162deg, #ff9f43 216deg,
+                #ff6b6b 216deg, #ff6b6b 270deg,
+                #c0392b 270deg, #c0392b 324deg,
+                #8e44ad 324deg, #8e44ad 360deg
+            );
+            padding: 10px;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.15);
+            transition: box-shadow 0.15s;
+        }
+
+        .gauge-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #0f0c29;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .db-value {
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1;
+            transition: color 0.15s;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .db-label { font-size: 1.1rem; color: #888; margin-top: 4px; }
+
+        .db-status {
+            font-size: 0.9rem;
+            margin-top: 6px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .start-btn {
+            margin: 12px auto;
+            padding: 14px 35px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: block;
+            width: 90%;
+            max-width: 300px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .start-btn:active { transform: scale(0.96); }
+
+        .start-btn:disabled {
+            background: #444;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 90%;
+            max-width: 400px;
+            margin: 8px auto;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value { font-size: 1.6rem; font-weight: 800; }
+
+        .bar-container {
+            width: 90%;
+            max-width: 400px;
+            margin: 12px auto;
+            background: rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .bar-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 18px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 9px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 9px;
+            transition: width 0.08s linear;
+            background: linear-gradient(90deg, #00d2d3, #54a0ff, #5f27cd, #ff9f43, #ff6b6b, #c0392b);
+            background-size: 400% 100%;
+            width: 0%;
+        }
+
+        .history-section {
+            width: 90%;
+            max-width: 400px;
+            margin: 12px auto 25px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .history-title {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .history-list {
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+        }
+
+        .history-item:last-child { border-bottom: none; }
+        .history-db { font-weight: 700; }
+        .history-time { color: #666; font-size: 0.7rem; }
+
+        .peak-indicator {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            opacity: 0;
+            transition: opacity 0.1s;
+            box-shadow: 0 0 8px #ff6b6b;
+        }
+
+        .peak-indicator.active { opacity: 1; }
+
+        .error-msg {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin: 8px auto;
+            padding: 0 20px;
+            min-height: 20px;
+        }
+
+        .permission-note {
+            text-align: center;
+            color: #666;
+            font-size: 0.75rem;
+            margin: 6px auto;
+            padding: 0 20px;
+        }
+
+        .history-list::-webkit-scrollbar { width: 3px; }
+        .history-list::-webkit-scrollbar-track { background: transparent; }
+        .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+        @media (max-width: 360px) {
+            .main-display { width: 220px; height: 220px; }
+            .db-value { font-size: 3.2rem; }
+            .header h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 Scream Meter</h1>
+        <p>Chillao! Dekho kitna tez hai 🔊</p>
+    </div>
+
+    <div class="warning-box" id="protocolWarning">
+        <strong>⚠️ Important:</strong> Mic access is blocked when opening files directly. 
+        You must serve this file via a web server (HTTPS or localhost).<br><br>
+        <strong>Quick fixes:</strong><br>
+        • <strong>Computer:</strong> Run <code>python -m http.server 8000</code> in the folder, then open <code>http://localhost:8000</code><br>
+        • <strong>Phone:</strong> Upload to <a href="https://app.netlify.com/drop" target="_blank" style="color:#ffc107">Netlify Drop</a> (drag & drop, free!)<br>
+        • Or use <a href="https://codepen.io/pen" target="_blank" style="color:#ffc107">CodePen</a> and paste this code
+    </div>
+
+    <div class="main-display" id="mainDisplay">
+        <div class="gauge-circle" id="gaugeCircle">
+            <div class="gauge-inner">
+                <div class="peak-indicator" id="peakIndicator"></div>
+                <div class="db-value" id="dbValue">--</div>
+                <div class="db-label">dB</div>
+                <div class="db-status" id="dbStatus">Ready</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="start-btn" id="startBtn" onclick="startMeasuring()">
+        🎤 Start Measuring
+    </button>
+
+    <p class="permission-note">
+        Microphone permission required. All processing is local — no data leaves your device.
+    </p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Peak Level</div>
+            <div class="stat-value" id="peakValue" style="color: #ff6b6b;">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Average</div>
+            <div class="stat-value" id="avgValue" style="color: #54a0ff;">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Duration</div>
+            <div class="stat-value" id="durationValue" style="color: #feca57;">0s</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Screams</div>
+            <div class="stat-value" id="screamCount" style="color: #ff9ff3;">0</div>
+        </div>
+    </div>
+
+    <div class="bar-container">
+        <div class="bar-label">
+            <span>Volume Level</span>
+            <span id="barPercent">0%</span>
+        </div>
+        <div class="bar-track">
+            <div class="bar-fill" id="barFill"></div>
+        </div>
+    </div>
+
+    <div class="history-section">
+        <div class="history-title">📜 Recent Peaks</div>
+        <div class="history-list" id="historyList">
+            <div style="text-align: center; color: #666; padding: 15px; font-size: 0.85rem;">No screams yet!</div>
+        </div>
+    </div>
+
+    <script>
+        // ===== PROTOCOL CHECK =====
+        if (window.location.protocol === 'file:') {
+            document.getElementById('protocolWarning').classList.add('active');
+        }
+
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let dataArray = null;
+        let isRunning = false;
+        let animationId = null;
+        let streamRef = null;
+
+        let peakDb = 0;
+        let totalDb = 0;
+        let sampleCount = 0;
+        let startTime = null;
+        let screamCount = 0;
+        let lastScreamTime = 0;
+        let history = [];
+        let smoothedDb = 30;
+
+        const dbValueEl = document.getElementById('dbValue');
+        const dbStatusEl = document.getElementById('dbStatus');
+        const peakValueEl = document.getElementById('peakValue');
+        const avgValueEl = document.getElementById('avgValue');
+        const durationValueEl = document.getElementById('durationValue');
+        const screamCountEl = document.getElementById('screamCount');
+        const barFillEl = document.getElementById('barFill');
+        const barPercentEl = document.getElementById('barPercent');
+        const startBtn = document.getElementById('startBtn');
+        const peakIndicator = document.getElementById('peakIndicator');
+        const gaugeCircle = document.getElementById('gaugeCircle');
+        const historyList = document.getElementById('historyList');
+        const errorMsg = document.getElementById('errorMsg');
+
+        const statusLevels = [
+            { max: 40, text: '🔇 Silent', color: '#00d2d3', glow: 'rgba(0, 210, 211, 0.2)' },
+            { max: 60, text: '🗣️ Talking', color: '#54a0ff', glow: 'rgba(84, 160, 255, 0.25)' },
+            { max: 75, text: '📢 Loud', color: '#5f27cd', glow: 'rgba(95, 39, 205, 0.25)' },
+            { max: 85, text: '📣 Shouting', color: '#ff9f43', glow: 'rgba(255, 159, 67, 0.3)' },
+            { max: 95, text: '🔥 Screaming!', color: '#ff6b6b', glow: 'rgba(255, 107, 107, 0.4)' },
+            { max: 120, text: '💥 EXTREME!', color: '#c0392b', glow: 'rgba(192, 57, 43, 0.5)' }
+        ];
+
+        function getStatus(db) {
+            for (let level of statusLevels) {
+                if (db <= level.max) return level;
+            }
+            return statusLevels[statusLevels.length - 1];
+        }
+
+        function setError(msg) {
+            errorMsg.textContent = msg;
+            setTimeout(() => { errorMsg.textContent = ''; }, 5000);
+        }
+
+        async function startMeasuring() {
+            errorMsg.textContent = '';
+
+            // Check if running from file://
+            if (window.location.protocol === 'file:') {
+                setError('❌ Cannot access microphone from file://. Please use a web server or upload online.');
+                document.getElementById('protocolWarning').classList.add('active');
+                return;
+            }
+
+            try {
+                // Request microphone with ideal settings for volume measurement
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        autoGainControl: false,
+                        noiseSuppression: false,
+                        sampleRate: 44100
+                    },
+                    video: false
+                });
+
+                streamRef = stream;
+
+                // Create audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 44100
+                });
+
+                // CRITICAL: Resume audio context (browsers block it until user gesture)
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+
+                // Use time domain for accurate volume measurement
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.85;
+
+                microphone.connect(analyser);
+
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                isRunning = true;
+                startTime = Date.now();
+                peakDb = 0;
+                totalDb = 0;
+                sampleCount = 0;
+                screamCount = 0;
+                history = [];
+                smoothedDb = 30;
+
+                startBtn.textContent = '⏹ Stop Measuring';
+                startBtn.style.background = 'linear-gradient(90deg, #c0392b, #e74c3c)';
+                startBtn.onclick = stopMeasuring;
+
+                measure();
+            } catch (err) {
+                console.error('Mic error:', err);
+                let msg = '❌ ';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    msg += 'Microphone permission denied. Please allow mic access in your browser settings.';
+                } else if (err.name === 'NotFoundError') {
+                    msg += 'No microphone found. Please connect a microphone.';
+                } else if (err.name === 'NotSupportedError') {
+                    msg += 'Your browser does not support microphone access. Use Chrome, Edge, or Safari.';
+                } else {
+                    msg += 'Error: ' + err.message;
+                }
+                setError(msg);
+            }
+        }
+
+        function stopMeasuring() {
+            isRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+
+            if (audioContext) {
+                audioContext.close().catch(() => {});
+                audioContext = null;
+            }
+
+            if (streamRef) {
+                streamRef.getTracks().forEach(t => t.stop());
+                streamRef = null;
+            }
+
+            microphone = null;
+            analyser = null;
+
+            startBtn.textContent = '🎤 Start Measuring';
+            startBtn.style.background = 'linear-gradient(90deg, #ff6b6b, #feca57)';
+            startBtn.onclick = startMeasuring;
+
+            dbValueEl.textContent = '--';
+            dbValueEl.style.color = '#fff';
+            dbStatusEl.textContent = 'Stopped';
+            dbStatusEl.style.background = 'rgba(255,255,255,0.1)';
+            dbStatusEl.style.color = '#888';
+            barFillEl.style.width = '0%';
+            barPercentEl.textContent = '0%';
+            peakIndicator.classList.remove('active');
+            gaugeCircle.style.boxShadow = '0 0 30px rgba(255, 107, 107, 0.15)';
+        }
+
+        function measure() {
+            if (!isRunning || !analyser) return;
+
+            // Use getByteTimeDomainData for volume (waveform), NOT frequency
+            analyser.getByteTimeDomainData(dataArray);
+
+            // Calculate RMS from time domain data
+            let sum = 0;
+            const len = dataArray.length;
+
+            for (let i = 0; i < len; i++) {
+                // Convert from 0-255 to -1.0 to 1.0 (128 is zero crossing)
+                const x = (dataArray[i] - 128) / 128.0;
+                sum += x * x;
+            }
+
+            const rms = Math.sqrt(sum / len);
+
+            // Convert RMS to dB scale
+            // RMS of 0.001 ≈ -60dB (very quiet)
+            // RMS of 0.1 ≈ -20dB (talking)
+            // RMS of 0.5 ≈ -6dB (shouting)
+            // RMS of 1.0 ≈ 0dB (max)
+            // We add offset of 100 to make it feel like real dB SPL
+            const minRms = 0.0001;
+            const clampedRms = Math.max(rms, minRms);
+            let db = 20 * Math.log10(clampedRms) + 100;
+
+            // Clamp to reasonable range
+            if (db < 30) db = 30;
+            if (db > 115) db = 115;
+
+            // Smooth the value (reduce jitter)
+            smoothedDb = smoothedDb * 0.3 + db * 0.7;
+            const roundedDb = Math.round(smoothedDb);
+
+            // Update display
+            dbValueEl.textContent = roundedDb;
+
+            const status = getStatus(roundedDb);
+            dbValueEl.style.color = status.color;
+            dbStatusEl.textContent = status.text;
+            dbStatusEl.style.color = status.color;
+            dbStatusEl.style.background = status.glow.replace('0.2', '0.15').replace('0.25', '0.15').replace('0.3', '0.15').replace('0.4', '0.15').replace('0.5', '0.15');
+
+            // Update gauge glow
+            gaugeCircle.style.boxShadow = `0 0 ${30 + (roundedDb - 30) * 0.5}px ${status.glow}`;
+
+            // Update bar
+            const percent = Math.min(100, ((roundedDb - 30) / 85) * 100);
+            barFillEl.style.width = percent + '%';
+            barPercentEl.textContent = Math.round(percent) + '%';
+
+            // Stats & peak detection
+            if (roundedDb > peakDb) {
+                peakDb = roundedDb;
+                peakValueEl.textContent = peakDb + ' dB';
+                peakIndicator.classList.add('active');
+                setTimeout(() => peakIndicator.classList.remove('active'), 150);
+
+                // Scream detection (above 75 dB with 2 second cooldown)
+                if (peakDb > 75) {
+                    const now = Date.now();
+                    if (now - lastScreamTime > 2000) {
+                        screamCount++;
+                        screamCountEl.textContent = screamCount;
+                        lastScreamTime = now;
+
+                        history.unshift({
+                            db: peakDb,
+                            time: new Date().toLocaleTimeString(),
+                            status: status.text
+                        });
+                        if (history.length > 10) history.pop();
+                        updateHistory();
+                    }
+                }
+            }
+
+            totalDb += roundedDb;
+            sampleCount++;
+            avgValueEl.textContent = Math.round(totalDb / sampleCount) + ' dB';
+
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            durationValueEl.textContent = elapsed + 's';
+
+            animationId = requestAnimationFrame(measure);
+        }
+
+        function updateHistory() {
+            if (history.length === 0) {
+                historyList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 0.85rem;">No screams yet!</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(h => {
+                const s = getStatus(h.db);
+                return `<div class="history-item">
+                    <div>
+                        <span class="history-db" style="color: ${s.color}">${h.db} dB</span>
+                        <span style="margin-left: 6px; font-size: 0.75rem; color: #777">${h.status}</span>
+                    </div>
+                    <div class="history-time">${h.time}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // Keep screen awake on mobile
+        if ('wakeLock' in navigator) {
+            let wakeLock = null;
+            document.addEventListener('visibilitychange', async () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    try {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                    } catch (e) {}
+                }
+            });
+        }
+    </script>
+</body>
+</html>
